@@ -9,7 +9,10 @@
       "commit": "055b3172e8eb374a75826710c4d08677872620d3"
     },
     "node/node.d.ts": {
-      "commit": "d5f92f93bdb49f332fa662ff1d0cc8700f02e4dc"
+      "commit": "f0aa5507070dc74859b636bd2dac37f3e8cab8d1"
+    },
+    "es6-promise/es6-promise.d.ts": {
+      "commit": "746b9a892629060bc853e792afff536e0ec4655e"
     }
   }
 }

@@ -23,6 +23,7 @@ const optionsObservable = Rx.Observable.just(Immutable.Map({
 gulp.task('clean/es6', done => del(OUTPUT_ROOT_DIR + '/es6', done));
 gulp.task('clean/cjs', done => del(OUTPUT_ROOT_DIR + '/cjs', done));
 gulp.task('clean/global', done => del(OUTPUT_ROOT_DIR + '/global', done));
+gulp.task('clean/amd', done => del(OUTPUT_ROOT_DIR + '/amd', done));
 
 gulp.task('build/es6',
 	['clean/es6'],
@@ -39,17 +40,18 @@ gulp.task('build/cjs',
 	doneOnCompleted(optionsObservable
 		.map(opts => opts.merge({target: 'es5', module: 'commonjs'}))
 		.map(getTsStream)
-		.map((stream) => {
-			stream.js = stream.js.pipe(insert.prepend( `
-"use strict";
+		.map((dualStream) => {
+			dualStream.js = dualStream.js.pipe(insert.prepend(
+`'use strict';
 
-Object.defineProperty(exports, '__esModule', {
-	value: true
-});
-			`));
-			return stream;
+exports.__esModule = true;
+`)).pipe(insert.append(
+`
+module.exports = exports.default;
+`));
+			return dualStream;
 		})
-		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/commonjs`))));
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/cjs`))));
 
 gulp.task('build/global',
 	['clean/global'],
@@ -57,6 +59,13 @@ gulp.task('build/global',
 		.map(opts => opts.merge({target: 'es5', module: 'umd'}))
 		.map(getTsStream)
 		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/global`))));
+
+gulp.task('build/amd',
+	['clean/amd'],
+	doneOnCompleted(optionsObservable
+		.map(opts => opts.merge({target: 'es5', module: 'amd'}))
+		.map(getTsStream)
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/amd`))));
 
 function doneOnCompleted (observable) {
 	return done => observable.subscribe(Rx.Observer.create(null,null,done));
