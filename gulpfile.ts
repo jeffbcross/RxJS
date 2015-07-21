@@ -22,14 +22,15 @@ gulp.task('clean/es6', done => del(OUTPUT_ROOT_DIR + '/es6', done));
 gulp.task('clean/cjs', done => del(OUTPUT_ROOT_DIR + '/cjs', done));
 gulp.task('clean/global', done => del(OUTPUT_ROOT_DIR + '/global', done));
 
-gulp.task('build/es6', ['clean/es6'], done => optionsObservable
+gulp.task('build/es6',
+	['clean/es6'],
+	doneOnCompleted(optionsObservable
 		.map(opts => opts.merge({
 			target: 'es6',
 			module: 'es6'
 		}))
 		.map(getTsStream)
-		.flatMap(writeTo(OUTPUT_ROOT_DIR + '/es6'))
-		.subscribe(Rx.Observer.create(null, null, done)));
+		.flatMap(writeTo(OUTPUT_ROOT_DIR + '/es6'))));
 
 // gulp.task('build/cjs', ['clean/cjs'], function() {
 // 	var stream = getTsStream('es6');
@@ -60,6 +61,12 @@ gulp.task('build/es6', ['clean/es6'], done => optionsObservable
 // 	}
 // 	return outputDir;
 // }
+
+function doneOnCompleted (observable) {
+	return function (done) {
+		observable.subscribe(Rx.Observer.create(null,null,done));
+	}
+}
 
 function writeTo (outputDir) {
 	return function (stream) {
