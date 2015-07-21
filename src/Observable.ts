@@ -1,3 +1,4 @@
+/// <reference path="../typings/es6-promise/es6-promise.d.ts"/>
 import Observer from './Observer';
 import Subscription from './Subscription';
 import SerialSubscription from './SerialSubscription';
@@ -41,7 +42,7 @@ export default class Observable {
   multicast: (subjectFactory: () => Subject) => ConnectableObservable;
   publish: () => ConnectableObservable;
   reduce: (processor: (accum: any, value: any) => any, initialValue: any) => Observable;
-  
+
   constructor(subscriber: (observer: Observer) => Function|void) {
     if (subscriber) {
       this.subscriber = subscriber;

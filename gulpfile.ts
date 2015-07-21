@@ -1,4 +1,5 @@
 /// <reference path="typings/tsd.d.ts"/>
+
 var tsc = require('gulp-typescript');
 var del = require('del');
 var gulp = require('gulp');
@@ -7,6 +8,7 @@ var babel = require('gulp-babel');
 var sourcemaps = require('gulp-sourcemaps');
 var typescript = require('typescript');
 var RxNode = require('rx-node');
+var insert = require('gulp-insert');
 
 import Rx = require('rx');
 import Immutable = require('immutable');
@@ -30,45 +32,37 @@ gulp.task('build/es6',
 			module: 'es6'
 		}))
 		.map(getTsStream)
-		.flatMap(writeTo(OUTPUT_ROOT_DIR + '/es6'))));
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/es6`))));
 
-// gulp.task('build/cjs', ['clean/cjs'], function() {
-// 	var stream = getTsStream('es6');
-// 	var jsStream = stream.js.pipe(babel({modules: 'common'}));
-// 	return writeOutputs(jsStream, stream.dts, getOutputDir('commonjs'));
-// });
+gulp.task('build/cjs',
+	['clean/cjs'],
+	doneOnCompleted(optionsObservable
+		.map(opts => opts.merge({target: 'es5', module: 'commonjs'}))
+		.map(getTsStream)
+		.map((stream) => {
+			stream.js = stream.js.pipe(insert.prepend( `
+"use strict";
 
-// gulp.task('build/global', ['clean/global'], function() {
-// 	var stream = getTsStream('es6');
-// 	var jsStream = stream.js.pipe(babel({modules: 'umd'}));
-// 	return writeOutputs(jsStream, stream.dts, getOutputDir('umd'));
-// });
+Object.defineProperty(exports, '__esModule', {
+	value: true
+});
+			`));
+			return stream;
+		})
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/commonjs`))));
 
-// function getOutputDir(moduleType) {
-// 	var outputDir;
-// 	switch (moduleType) {
-// 		case 'commonjs':
-// 			outputDir = OUTPUT_ROOT_DIR + '/cjs';
-// 			break;
-// 		case 'amd':
-// 			outputDir = OUTPUT_ROOT_DIR + '/amd';
-// 			break;
-// 		case 'umd':
-// 			outputDir = OUTPUT_ROOT_DIR + '/global';
-// 			break;
-// 		default:
-// 			outputDir = OUTPUT_ROOT_DIR + '/es6'
-// 	}
-// 	return outputDir;
-// }
+gulp.task('build/global',
+	['clean/global'],
+	doneOnCompleted(optionsObservable
+		.map(opts => opts.merge({target: 'es5', module: 'umd'}))
+		.map(getTsStream)
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/global`))));
 
 function doneOnCompleted (observable) {
-	return function (done) {
-		observable.subscribe(Rx.Observer.create(null,null,done));
-	}
+	return done => observable.subscribe(Rx.Observer.create(null,null,done));
 }
 
-function writeTo (outputDir) {
+function writeToDir (outputDir) {
 	return function (stream) {
 		return writeOutputs({
 			outputDir: outputDir,

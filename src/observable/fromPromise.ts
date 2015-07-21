@@ -1,14 +1,15 @@
+/// <reference path="../../typings/es6-promise/es6-promise.d.ts"/>
 import Observable from '../Observable';
 import Observer from '../Observer';
 
 class PromiseObservable extends Observable {
   promise:Promise<any>;
-  
+
   constructor(promise:Promise<any>) {
     super(null);
-    this.promise = promise; 
+    this.promise = promise;
   }
-  
+
   subscriber(observer:Observer) {
     var promise = this.promise;
     if(promise) {
