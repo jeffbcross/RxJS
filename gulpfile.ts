@@ -9,6 +9,10 @@ var sourcemaps = require('gulp-sourcemaps');
 var typescript = require('typescript');
 var RxNode = require('rx-node');
 var insert = require('gulp-insert');
+var concat = require('gulp-concat');
+var browserify = require('browserify');
+var buffer = require('vinyl-buffer');
+var source = require('vinyl-source-stream');
 
 import Rx = require('rx');
 import Immutable = require('immutable');
@@ -24,6 +28,7 @@ gulp.task('clean/es6', done => del(OUTPUT_ROOT_DIR + '/es6', done));
 gulp.task('clean/cjs', done => del(OUTPUT_ROOT_DIR + '/cjs', done));
 gulp.task('clean/global', done => del(OUTPUT_ROOT_DIR + '/global', done));
 gulp.task('clean/amd', done => del(OUTPUT_ROOT_DIR + '/amd', done));
+gulp.task('clean/system', done => del(OUTPUT_ROOT_DIR + '/system', done));
 
 gulp.task('build/es6',
 	['clean/es6'],
@@ -55,10 +60,11 @@ module.exports = exports.default;
 
 gulp.task('build/global',
 	['clean/global'],
-	doneOnCompleted(optionsObservable
-		.map(opts => opts.merge({target: 'es5', module: 'umd'}))
-		.map(getTsStream)
-		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/global`))));
+	doneOnCompleted(Rx.Observable.just(browserify({entries: `./src/RxNext.global.js`}))
+		.map(b => b
+			.bundle()
+			.pipe(source('RxNext.js'))
+			.pipe(gulp.dest(`${OUTPUT_ROOT_DIR}/global`)))));
 
 gulp.task('build/amd',
 	['clean/amd'],
@@ -67,14 +73,22 @@ gulp.task('build/amd',
 		.map(getTsStream)
 		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/amd`))));
 
-function doneOnCompleted (observable) {
+gulp.task('build/system',
+	['clean/system'],
+	doneOnCompleted(optionsObservable
+		.map(opts => opts.merge({target: 'es5', module: 'system'}))
+		.map(getTsStream)
+		.flatMap(writeToDir(`${OUTPUT_ROOT_DIR}/system`))));
+
+function doneOnCompleted (observable:Rx.Observable<any>) {
 	return done => observable.subscribe(Rx.Observer.create(null,null,done));
 }
 
-function writeToDir (outputDir) {
-	return function (stream) {
+function writeToDir (outputDir:string, dtsOutputDir?:string) {
+	return function (stream:{js:NodeJS.ReadableStream, dts:NodeJS.ReadableStream}) {
 		return writeOutputs({
 			outputDir: outputDir,
+			dtsOutputDir: dtsOutputDir || outputDir,
 			js: stream.js,
 			dts: stream.dts
 		});
@@ -87,11 +101,12 @@ function getTsStream(compilerOptions:Immutable.Map<string, any>) {
 		pipe(tsc(compilerOptions.toObject()));
 }
 
-function writeOutputs ({js, dts, outputDir}:{
+function writeOutputs ({js, dts, outputDir, dtsOutputDir}:{
 	js:NodeJS.ReadableStream,
 	dts: NodeJS.ReadableStream,
-	outputDir: string}):Rx.Observable<NodeJS.ReadableStream> {
+	outputDir: string,
+	dtsOutputDir: string}):Rx.Observable<NodeJS.ReadableStream> {
 	return RxNode.fromStream(merge(
 		js.pipe(gulp.dest(outputDir)),
-		dts.pipe(gulp.dest(outputDir))));
+		dts.pipe(gulp.dest(dtsOutputDir))));
 }
